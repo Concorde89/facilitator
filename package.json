@@ -1,0 +1,43 @@
+{
+  "name": "autoincentive-facilitator",
+  "version": "1.0.0",
+  "description": "AutoIncentive Facilitator - Self-hosted x402 payment verification and settlement for Base and Solana",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "keywords": [
+    "x402",
+    "facilitator",
+    "payments",
+    "base",
+    "solana",
+    "usdc"
+  ],
+  "author": "AutoIncentive",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.44.2",
+    "@solana/web3.js": "^1.98.0",
+    "@solana/spl-token": "^0.4.9",
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.4.5",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "tsx": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

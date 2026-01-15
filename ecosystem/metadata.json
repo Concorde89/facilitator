@@ -1,0 +1,79 @@
+{
+  "name": "AutoIncentive Facilitator",
+  "slug": "autoincentive",
+  "description": "Free, public x402 facilitator for Base and Solana. Full verify + settle flow with on-chain USDC transfers. No API keys required.",
+  "category": "facilitator",
+  "url": "https://facilitator.x402endpoints.online",
+  "website": "https://autoincentive.online",
+  "documentation": "https://github.com/Concorde89/facilitator/blob/main/docs/API.md",
+  "logo": "autoincentivelogo.png",
+  "networks": [
+    {
+      "name": "Base",
+      "chainId": "eip155:8453",
+      "legacyId": "base",
+      "type": "mainnet",
+      "signer": "0xDCab6a5ddEB65De28BEDD218F9be1DBf5011D02C",
+      "ens": "x402facilitator.base.eth"
+    },
+    {
+      "name": "Base Sepolia",
+      "chainId": "eip155:84532",
+      "legacyId": "base-sepolia",
+      "type": "testnet",
+      "signer": "0xDCab6a5ddEB65De28BEDD218F9be1DBf5011D02C",
+      "ens": "x402facilitator.base.eth"
+    },
+    {
+      "name": "Solana",
+      "chainId": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      "legacyId": "solana",
+      "type": "mainnet",
+      "signer": "9JRPU5K4haWWo1g3WSjCaq283uYcbxvfdEATkaSLw9X8",
+      "sns": "x402facilitator.sol"
+    },
+    {
+      "name": "Solana Devnet",
+      "chainId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "legacyId": "solana-devnet",
+      "type": "testnet",
+      "signer": "9JRPU5K4haWWo1g3WSjCaq283uYcbxvfdEATkaSLw9X8"
+    }
+  ],
+  "endpoints": {
+    "health": "/health",
+    "supported": "/supported",
+    "verify": "/verify",
+    "settle": "/settle"
+  },
+  "features": [
+    "EIP-712 signature verification (Base)",
+    "SPL transaction verification (Solana)",
+    "On-chain USDC settlement",
+    "Balance checking",
+    "Nonce validation",
+    "v1 and v2 (CAIP-2) network formats"
+  ],
+  "assets": {
+    "base": {
+      "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    "base-sepolia": {
+      "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    },
+    "solana": {
+      "usdc": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    },
+    "solana-devnet": {
+      "usdc": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+    }
+  },
+  "x402Versions": [1, 2],
+  "schemes": ["exact"],
+  "rateLimit": "No rate limits currently enforced",
+  "pricing": "Free - no fees charged",
+  "contact": {
+    "twitter": "@AutoIncentive",
+    "github": "https://github.com/Concorde89/facilitator"
+  }
+}
