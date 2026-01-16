@@ -118,7 +118,21 @@ app.post('/verify', async (req, res) => {
       return;
     }
 
-    const { network } = body.paymentPayload;
+    // Support both v1 (network at root) and v2 (network in accepted)
+    const network = body.paymentPayload.network ||
+                    (body.paymentPayload as any).accepted?.network ||
+                    body.paymentRequirements?.network;
+
+    // Validate network field exists
+    if (!network || typeof network !== 'string') {
+      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(body.paymentPayload, null, 2));
+      console.error('paymentRequirements:', JSON.stringify(body.paymentRequirements, null, 2));
+      res.status(400).json({
+        isValid: false,
+        invalidReason: 'invalid_payload',
+      } as VerifyResponse);
+      return;
+    }
 
     let response: VerifyResponse;
 
@@ -163,7 +177,21 @@ app.post('/settle', async (req, res) => {
       return;
     }
 
-    const { network } = body.paymentPayload;
+    // Support both v1 (network at root) and v2 (network in accepted)
+    const network = body.paymentPayload.network ||
+                    (body.paymentPayload as any).accepted?.network ||
+                    body.paymentRequirements?.network;
+
+    // Validate network field exists
+    if (!network || typeof network !== 'string') {
+      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(body.paymentPayload, null, 2));
+      console.error('paymentRequirements:', JSON.stringify(body.paymentRequirements, null, 2));
+      res.status(400).json({
+        success: false,
+        errorReason: 'invalid_payload',
+      } as SettleResponse);
+      return;
+    }
 
     let response: SettleResponse;
 
