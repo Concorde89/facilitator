@@ -117,3 +117,72 @@ export type ErrorReason =
   | 'settlement_failed'
   | 'unsupported_network'
   | 'unexpected_error';
+
+// ============================================================================
+// Bazaar Discovery Types (x402 v2 Extension)
+// ============================================================================
+
+// Bazaar extension in PaymentRequirements
+export interface BazaarExtension {
+  info: {
+    input?: {
+      type: 'http';
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      queryParams?: Record<string, unknown>;
+      body?: Record<string, unknown>;
+    };
+    output?: {
+      type: 'json' | 'text' | 'binary';
+      example?: Record<string, unknown>;
+    };
+  };
+  schema?: Record<string, unknown>;
+}
+
+// Extended PaymentRequirements with Bazaar extension
+export interface PaymentRequirementsWithExtensions extends PaymentRequirements {
+  extensions?: {
+    bazaar?: BazaarExtension;
+    [key: string]: unknown;
+  };
+}
+
+// Discovered resource stored in registry
+export interface DiscoveredResource {
+  resource: string;
+  type: 'http';
+  x402Version: number;
+  accepts: Array<{
+    scheme: string;
+    network: string;
+    amount: string;
+    asset: string;
+    payTo: string;
+  }>;
+  lastUpdated: string;
+  metadata?: {
+    description?: string;
+    input?: Record<string, unknown>;
+    inputSchema?: Record<string, unknown>;
+    output?: Record<string, unknown>;
+    outputSchema?: Record<string, unknown>;
+  };
+}
+
+// Discovery list response
+export interface DiscoveryListResponse {
+  x402Version: 2;
+  items: DiscoveredResource[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+  };
+}
+
+// Discovery query parameters
+export interface DiscoveryQueryParams {
+  type?: string;
+  limit?: number;
+  offset?: number;
+}

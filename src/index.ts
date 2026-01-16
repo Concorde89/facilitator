@@ -17,7 +17,14 @@ import type {
   SupportedResponse,
   EvmPaymentPayload,
   SolanaPaymentPayload,
+  DiscoveryQueryParams,
+  PaymentRequirementsWithExtensions,
 } from './types/index.js';
+import {
+  catalogFromPayment,
+  listResources,
+  getStats,
+} from './discovery/index.js';
 
 // Configuration
 const config = {
@@ -74,6 +81,24 @@ app.use((req, res, next) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// GET /discovery/resources - Bazaar discovery endpoint
+app.get('/discovery/resources', (req, res) => {
+  const params: DiscoveryQueryParams = {
+    type: (req.query.type as string) || 'http',
+    limit: parseInt(req.query.limit as string) || 20,
+    offset: parseInt(req.query.offset as string) || 0,
+  };
+
+  const response = listResources(params);
+  res.json(response);
+});
+
+// GET /discovery/stats - Discovery registry stats
+app.get('/discovery/stats', (_req, res) => {
+  const stats = getStats();
+  res.json(stats);
 });
 
 // GET /supported - List supported networks
@@ -151,6 +176,14 @@ app.post('/verify', async (req, res) => {
         isValid: false,
         invalidReason: 'unsupported_network',
       };
+    }
+
+    // Catalog resource for Bazaar discovery (if valid and has bazaar extension)
+    if (response.isValid) {
+      catalogFromPayment(
+        body.x402Version,
+        body.paymentRequirements as PaymentRequirementsWithExtensions
+      );
     }
 
     const status = response.isValid ? 200 : 400;
@@ -242,10 +275,12 @@ app.listen(config.port, () => {
   console.log(`║  Server:      http://localhost:${config.port}                          ║`);
   console.log('╠════════════════════════════════════════════════════════════════╣');
   console.log('║  Endpoints:                                                    ║');
-  console.log('║  - GET  /health     Health check                               ║');
-  console.log('║  - GET  /supported  List supported networks                    ║');
-  console.log('║  - POST /verify     Verify a payment signature                 ║');
-  console.log('║  - POST /settle     Settle a payment (transfer funds)          ║');
+  console.log('║  - GET  /health              Health check                      ║');
+  console.log('║  - GET  /supported           List supported networks           ║');
+  console.log('║  - POST /verify              Verify a payment signature        ║');
+  console.log('║  - POST /settle              Settle a payment                  ║');
+  console.log('║  - GET  /discovery/resources Bazaar discovery (list APIs)      ║');
+  console.log('║  - GET  /discovery/stats     Discovery stats                   ║');
   console.log('╠════════════════════════════════════════════════════════════════╣');
   console.log('║  Networks:                                                     ║');
 
