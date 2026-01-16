@@ -24,7 +24,9 @@ import {
   catalogFromPayment,
   listResources,
   getStats,
+  registerResource,
 } from './discovery/index.js';
+import type { DiscoveredResource } from './types/index.js';
 
 // Configuration
 const config = {
@@ -99,6 +101,42 @@ app.get('/discovery/resources', (req, res) => {
 app.get('/discovery/stats', (_req, res) => {
   const stats = getStats();
   res.json(stats);
+});
+
+// POST /discovery/register - Manual resource registration
+app.post('/discovery/register', (req, res) => {
+  try {
+    const body = req.body as DiscoveredResource;
+
+    // Validate required fields
+    if (!body.resource || !body.accepts || !Array.isArray(body.accepts) || body.accepts.length === 0) {
+      res.status(400).json({
+        error: 'Invalid resource. Required: resource (URL), accepts (array with at least one payment method)',
+      });
+      return;
+    }
+
+    // Build the resource object
+    const resource: DiscoveredResource = {
+      resource: body.resource,
+      type: body.type || 'http',
+      x402Version: body.x402Version || 2,
+      accepts: body.accepts,
+      lastUpdated: new Date().toISOString(),
+      metadata: body.metadata,
+    };
+
+    registerResource(resource);
+
+    res.status(201).json({
+      success: true,
+      message: `Resource registered: ${resource.resource}`,
+      resource,
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Failed to register resource' });
+  }
 });
 
 // GET /supported - List supported networks
@@ -280,6 +318,7 @@ app.listen(config.port, () => {
   console.log('║  - POST /verify              Verify a payment signature        ║');
   console.log('║  - POST /settle              Settle a payment                  ║');
   console.log('║  - GET  /discovery/resources Bazaar discovery (list APIs)      ║');
+  console.log('║  - POST /discovery/register  Manual resource registration      ║');
   console.log('║  - GET  /discovery/stats     Discovery stats                   ║');
   console.log('╠════════════════════════════════════════════════════════════════╣');
   console.log('║  Networks:                                                     ║');
