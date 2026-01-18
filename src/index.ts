@@ -19,6 +19,8 @@ import type {
   SolanaPaymentPayload,
   DiscoveryQueryParams,
   PaymentRequirementsWithExtensions,
+  OASFAgentRecord,
+  OASFSkill,
 } from './types/index.js';
 import {
   catalogFromPayment,
@@ -101,6 +103,69 @@ app.get('/discovery/resources', (req, res) => {
 app.get('/discovery/stats', (_req, res) => {
   const stats = getStats();
   res.json(stats);
+});
+
+// ============================================================================
+// OASF (Open Agent Service Framework) Endpoints
+// ============================================================================
+
+// OASF Agent Record - describes this facilitator as an agent service
+const oasfRecord: OASFAgentRecord = {
+  name: 'AutoIncentive Facilitator',
+  description: 'x402 payment verification and settlement facilitator supporting Base and Solana networks. Enables AI agents and services to monetize API endpoints using the HTTP 402 Payment Required protocol.',
+  version: '1.0.0',
+  schema_version: '0.8.0',
+  authors: ['Autoincentive <contact@autoincentive.online>'],
+  created_at: '2025-01-15T00:00:00Z',
+  domains: [
+    { name: 'technology/blockchain', id: 1601 },
+    { name: 'technology/financial_technology', id: 1602 },
+    { name: 'technology/web3', id: 1603 },
+  ],
+  skills: [
+    { name: 'blockchain/payment_verification', id: 2001 },
+    { name: 'blockchain/transaction_settlement', id: 2002 },
+    { name: 'blockchain/signature_validation', id: 2003 },
+    { name: 'agent_orchestration/service_coordination', id: 1005 },
+    { name: 'api_integration/http_402_protocol', id: 3001 },
+  ],
+  modules: [
+    {
+      type: 'x402_facilitator',
+      networks: ['base', 'base-sepolia', 'solana', 'solana-devnet'],
+      supported_versions: [1, 2],
+      endpoints: {
+        health: '/health',
+        verify: '/verify',
+        settle: '/settle',
+        supported: '/supported',
+        discovery: '/discovery/resources',
+        oasf_record: '/oasf/record',
+        oasf_skills: '/oasf/skills',
+      },
+    },
+  ],
+  locators: [
+    { type: 'service', url: 'https://facilitator.x402endpoints.online' },
+    { type: 'source_code', url: 'https://github.com/Concorde89/facilitator' },
+  ],
+};
+
+// OASF Skills list
+const oasfSkills: OASFSkill[] = oasfRecord.skills;
+
+// GET /oasf/record - Returns the OASF agent record
+app.get('/oasf/record', (_req, res) => {
+  res.json(oasfRecord);
+});
+
+// GET /oasf/skills - Returns the list of skills
+app.get('/oasf/skills', (_req, res) => {
+  res.json({
+    agent: oasfRecord.name,
+    version: oasfRecord.version,
+    skills: oasfSkills,
+  });
 });
 
 // POST /discovery/register - Manual resource registration
@@ -320,6 +385,8 @@ app.listen(config.port, () => {
   console.log('║  - GET  /discovery/resources Bazaar discovery (list APIs)      ║');
   console.log('║  - POST /discovery/register  Manual resource registration      ║');
   console.log('║  - GET  /discovery/stats     Discovery stats                   ║');
+  console.log('║  - GET  /oasf/record         OASF agent record                 ║');
+  console.log('║  - GET  /oasf/skills         OASF skills list                  ║');
   console.log('╠════════════════════════════════════════════════════════════════╣');
   console.log('║  Networks:                                                     ║');
 

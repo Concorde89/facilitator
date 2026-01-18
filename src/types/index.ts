@@ -186,3 +186,45 @@ export interface DiscoveryQueryParams {
   limit?: number;
   offset?: number;
 }
+
+// ============================================================================
+// OASF (Open Agent Service Framework) Types
+// ============================================================================
+
+// OASF Skill definition
+export interface OASFSkill {
+  name: string;  // Hierarchical identifier (e.g., "blockchain/payment_verification")
+  id: number;    // Unique skill class identifier
+}
+
+// OASF Domain definition
+export interface OASFDomain {
+  name: string;  // Hierarchical identifier (e.g., "technology/blockchain")
+  id: number;    // Unique domain class identifier
+}
+
+// OASF Locator (resource reference)
+export interface OASFLocator {
+  type: 'service' | 'source_code' | 'docker' | 'documentation';
+  url: string;
+}
+
+// OASF Module (extensible operational parameters)
+export interface OASFModule {
+  type: string;
+  [key: string]: unknown;
+}
+
+// OASF Agent Record (main structure)
+export interface OASFAgentRecord {
+  name: string;
+  description: string;
+  version: string;
+  schema_version: string;
+  authors: string[];
+  created_at: string;  // RFC 3339 format
+  domains: OASFDomain[];
+  skills: OASFSkill[];
+  modules: OASFModule[];
+  locators: OASFLocator[];
+}
