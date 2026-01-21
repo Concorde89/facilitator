@@ -394,5 +394,5 @@ Currently no rate limits are enforced. Please use responsibly.
 
 ## Support
 
-- GitHub: [AutoIncentive](https://github.com/autoincentive)
-- Twitter: [@AutoIncentive](https://twitter.com/autoincentive)
+- X: [@Autoincentiv3](https://x.com/Autoincentiv3)
+- GitHub: [Concorde89/facilitator](https://github.com/Concorde89/facilitator)

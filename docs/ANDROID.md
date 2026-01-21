@@ -569,5 +569,6 @@ val client = FacilitatorClient(
 
 ## Support
 
+- X: [@Autoincentiv3](https://x.com/Autoincentiv3)
 - GitHub Issues: [github.com/Concorde89/facilitator/issues](https://github.com/Concorde89/facilitator/issues)
 - Email: contact@autoincentive.online
