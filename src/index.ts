@@ -4,6 +4,15 @@
  */
 
 import 'dotenv/config';
+
+// Prevent crashes from unhandled errors
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
