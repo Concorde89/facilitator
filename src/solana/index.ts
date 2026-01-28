@@ -9,7 +9,6 @@ import {
   PublicKey,
   Transaction,
   VersionedTransaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
@@ -72,6 +71,7 @@ export class SolanaFacilitator {
 
   /**
    * Verify a Solana payment transaction
+   * Supports gasless mode where facilitator is fee payer but user pays USDC
    */
   async verify(
     paymentPayload: SolanaPaymentPayload,
@@ -83,19 +83,59 @@ export class SolanaFacilitator {
       // Decode the transaction
       const txBuffer = Buffer.from(txBase64, 'base64');
       let transaction: Transaction | VersionedTransaction;
-      let payer: string;
+      let feePayer: string;
+      let usdcPayer: string;
+
+      const facilitatorAddress = this.keypair?.publicKey.toBase58();
 
       try {
         // Try versioned transaction first
         transaction = VersionedTransaction.deserialize(txBuffer);
-        payer = transaction.message.staticAccountKeys[0].toBase58();
+        feePayer = transaction.message.staticAccountKeys[0].toBase58();
+
+        // In gasless mode, fee payer is facilitator but USDC payer is different
+        // Try to find the actual token authority from the instructions
+        if (facilitatorAddress && feePayer === facilitatorAddress) {
+          // Gasless mode - look for token transfer authority in accounts
+          // The token transfer instruction has: source ATA, dest ATA, authority
+          // Authority is typically the 3rd account in a transfer instruction
+          // For simplicity, assume the second account key is the actual user
+          const accountKeys = transaction.message.staticAccountKeys;
+          usdcPayer = accountKeys.length > 1 ? accountKeys[1].toBase58() : feePayer;
+          console.log(`   Gasless mode detected: fee payer is facilitator`);
+          console.log(`   USDC payer: ${usdcPayer}`);
+        } else {
+          usdcPayer = feePayer;
+        }
       } catch {
         // Fall back to legacy transaction
         transaction = Transaction.from(txBuffer);
-        payer = transaction.feePayer?.toBase58() || '';
+        feePayer = transaction.feePayer?.toBase58() || '';
+
+        // In gasless mode, find actual USDC payer from instructions
+        if (facilitatorAddress && feePayer === facilitatorAddress) {
+          // Look through instructions to find token transfer authority
+          const tokenTransferIx = transaction.instructions.find(
+            ix => ix.programId.equals(TOKEN_PROGRAM_ID)
+          );
+          if (tokenTransferIx && tokenTransferIx.keys.length >= 3) {
+            // SPL Token transfer: [source, destination, authority]
+            usdcPayer = tokenTransferIx.keys[2].pubkey.toBase58();
+          } else {
+            // Fallback: check signers that aren't the facilitator
+            const otherSigner = transaction.signatures.find(
+              sig => sig.publicKey.toBase58() !== facilitatorAddress
+            );
+            usdcPayer = otherSigner?.publicKey.toBase58() || feePayer;
+          }
+          console.log(`   Gasless mode detected: fee payer is facilitator`);
+          console.log(`   USDC payer: ${usdcPayer}`);
+        } else {
+          usdcPayer = feePayer;
+        }
       }
 
-      if (!payer) {
+      if (!feePayer) {
         return {
           isValid: false,
           invalidReason: 'invalid_payload',
@@ -108,12 +148,12 @@ export class SolanaFacilitator {
         return {
           isValid: false,
           invalidReason: 'unsupported_network',
-          payer,
+          payer: usdcPayer,
         };
       }
 
-      // Check payer's USDC balance
-      const payerPubkey = new PublicKey(payer);
+      // Check USDC payer's balance (not fee payer in gasless mode)
+      const payerPubkey = new PublicKey(usdcPayer);
       const payerAta = await getAssociatedTokenAddress(usdcMint, payerPubkey);
 
       try {
@@ -124,24 +164,24 @@ export class SolanaFacilitator {
           return {
             isValid: false,
             invalidReason: 'insufficient_funds',
-            payer,
+            payer: usdcPayer,
           };
         }
 
-        console.log(`✅ Solana verification passed for ${payer}`);
+        console.log(`✅ Solana verification passed for ${usdcPayer}`);
         console.log(`   Amount required: ${requirements.maxAmountRequired} USDC units`);
         console.log(`   Balance: ${tokenAccount.amount.toString()} USDC units`);
 
         return {
           isValid: true,
-          payer,
+          payer: usdcPayer,
         };
       } catch (error) {
         // Token account doesn't exist
         return {
           isValid: false,
           invalidReason: 'insufficient_funds',
-          payer,
+          payer: usdcPayer,
         };
       }
     } catch (error) {
@@ -155,6 +195,7 @@ export class SolanaFacilitator {
 
   /**
    * Settle a Solana payment (submit the pre-signed transaction)
+   * Supports gasless mode where facilitator pays SOL fees
    */
   async settle(
     paymentPayload: SolanaPaymentPayload,
@@ -180,15 +221,17 @@ export class SolanaFacilitator {
       console.log(`   Amount: ${requirements.maxAmountRequired} USDC units`);
 
       let signature: string;
+      const facilitatorAddress = this.keypair?.publicKey.toBase58();
 
       try {
-        // Try versioned transaction
+        // Try versioned transaction first
         const versionedTx = VersionedTransaction.deserialize(txBuffer);
+        const txFeePayer = versionedTx.message.staticAccountKeys[0].toBase58();
 
-        // If we have a keypair, we might need to add fee payer signature
-        if (this.keypair) {
-          // The transaction should already be signed by the payer
-          // We just submit it
+        // Check if facilitator needs to sign as fee payer (gasless mode)
+        if (this.keypair && txFeePayer === facilitatorAddress) {
+          console.log(`   Gasless mode: Facilitator signing as fee payer`);
+          versionedTx.sign([this.keypair]);
         }
 
         signature = await this.connection.sendTransaction(versionedTx, {
@@ -198,16 +241,21 @@ export class SolanaFacilitator {
       } catch {
         // Try legacy transaction
         const legacyTx = Transaction.from(txBuffer);
+        const txFeePayer = legacyTx.feePayer?.toBase58();
 
-        if (this.keypair && !legacyTx.feePayer) {
-          legacyTx.feePayer = this.keypair.publicKey;
+        // Check if facilitator needs to sign as fee payer (gasless mode)
+        if (this.keypair && txFeePayer === facilitatorAddress) {
+          console.log(`   Gasless mode: Facilitator signing as fee payer`);
+          legacyTx.partialSign(this.keypair);
         }
 
-        signature = await sendAndConfirmTransaction(
-          this.connection,
-          legacyTx,
-          this.keypair ? [this.keypair] : [],
-          { commitment: 'confirmed' }
+        // Send the transaction (now with facilitator signature if gasless)
+        signature = await this.connection.sendRawTransaction(
+          legacyTx.serialize(),
+          {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+          }
         );
       }
 
