@@ -71,7 +71,7 @@ curl https://facilitator.x402endpoints.online/supported
 |---------|-----------|-------------------|
 | Base Mainnet | `base` | `eip155:8453` |
 | Base Sepolia | `base-sepolia` | `eip155:84532` |
-| SKALE Europa | `skale-europa` | `eip155:324705682` |
+| SKALE Base Sepolia | `skale-europa` | `eip155:324705682` |
 | Solana Mainnet | `solana` | `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` |
 | Solana Devnet | `solana-devnet` | `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` |
 
@@ -372,7 +372,7 @@ The facilitator uses these addresses to pay gas for settlements:
 | Network | Address | Notes |
 |---------|---------|-------|
 | Base | `0xDCab6a5ddEB65De28BEDD218F9be1DBf5011D02C` | Pays gas for settlements |
-| SKALE Europa | `0x12a2A9353fD1bAdb2eB9DbE9Cb75d73e527D2763` | Gasless (no sFUEL needed) |
+| SKALE Base Sepolia | `0x12a2A9353fD1bAdb2eB9DbE9Cb75d73e527D2763` | Gasless (no gas fees needed) |
 | Solana | `9JRPU5K4haWWo1g3WSjCaq283uYcbxvfdEATkaSLw9X8` | x402facilitator.sol |
 
 These wallets submit settlement transactions. They never hold or touch user funds - transfers go directly from payer to recipient. SKALE Europa is gasless, so no sFUEL is required.
@@ -385,7 +385,7 @@ These wallets submit settlement transactions. They never hold or touch user fund
 |---------|-------------|
 | Base Mainnet | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Base Sepolia | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
-| SKALE Europa | `0x2e08028E3C4c2356572E096d8EF835cD5C6030bD` (Bridged USDC) |
+| SKALE Base Sepolia | `0x2e08028E3C4c2356572E096d8EF835cD5C6030bD` (Bridged USDC) |
 | Solana Mainnet | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
 | Solana Devnet | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
 

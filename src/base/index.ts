@@ -22,24 +22,24 @@ import type {
   SettleResponse,
 } from '../types/index.js';
 
-// SKALE Europa chain definition
-const skaleEuropa = defineChain({
+// SKALE Base Sepolia chain definition
+const skaleBaseSepolia = defineChain({
   id: 324705682,
-  name: 'SKALE Europa',
+  name: 'SKALE Base Sepolia',
   nativeCurrency: {
-    name: 'sFUEL',
-    symbol: 'sFUEL',
+    name: 'CREDIT',
+    symbol: 'CREDIT',
     decimals: 18,
   },
   rpcUrls: {
     default: {
-      http: ['https://mainnet.skalenodes.com/v1/elated-tan-skat'],
+      http: ['https://base-sepolia-testnet.skalenodes.com/v1/jubilant-horrible-ancha'],
     },
   },
   blockExplorers: {
     default: {
       name: 'SKALE Explorer',
-      url: 'https://elated-tan-skat.explorer.mainnet.skalenodes.com',
+      url: 'https://base-sepolia-testnet-explorer.skalenodes.com',
     },
   },
 });
@@ -53,7 +53,7 @@ const USDC_ADDRESSES: Record<number, Address> = {
 
 // USDC EIP-712 domain (per-chain, since bridged USDC may have different name/version)
 const USDC_DOMAIN_OVERRIDES: Record<number, { name: string; version: string }> = {
-  324705682: { name: 'USD Coin', version: '2' }, // SKALE Europa bridged USDC
+  324705682: { name: 'Bridged USDC (SKALE Bridge)', version: '2' }, // SKALE Base Sepolia
 };
 
 const getUsdcDomain = (chainId: number) => {
@@ -126,7 +126,7 @@ function getChainId(network: string): number {
 function getChain(chainId: number) {
   if (chainId === 8453) return base;
   if (chainId === 84532) return baseSepolia;
-  if (chainId === 324705682) return skaleEuropa;
+  if (chainId === 324705682) return skaleBaseSepolia;
   throw new Error(`Unsupported chain ID: ${chainId}`);
 }
 

@@ -49,7 +49,7 @@ const config = {
   baseChainId: parseInt(process.env.BASE_CHAIN_ID || '8453'),
 
   // SKALE Europa
-  skaleRpcUrl: process.env.SKALE_RPC || 'https://mainnet.skalenodes.com/v1/elated-tan-skat',
+  skaleRpcUrl: process.env.SKALE_RPC || 'https://base-sepolia-testnet.skalenodes.com/v1/jubilant-horrible-ancha',
   skalePrivateKey: process.env.SKALE_FACILITATOR_PK,
 
   // Solana
