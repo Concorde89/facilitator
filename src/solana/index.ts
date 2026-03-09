@@ -158,7 +158,8 @@ export class SolanaFacilitator {
 
       try {
         const tokenAccount = await getAccount(this.connection, payerAta);
-        const requiredAmount = BigInt(requirements.maxAmountRequired);
+        const amountStr = requirements.maxAmountRequired || requirements.amount;
+        const requiredAmount = BigInt(amountStr || '0');
 
         if (tokenAccount.amount < requiredAmount) {
           return {
@@ -169,7 +170,7 @@ export class SolanaFacilitator {
         }
 
         console.log(`✅ Solana verification passed for ${usdcPayer}`);
-        console.log(`   Amount required: ${requirements.maxAmountRequired} USDC units`);
+        console.log(`   Amount required: ${amountStr} USDC units`);
         console.log(`   Balance: ${tokenAccount.amount.toString()} USDC units`);
 
         return {
@@ -218,7 +219,7 @@ export class SolanaFacilitator {
 
       console.log(`💸 Settling payment on Solana...`);
       console.log(`   Payer: ${verification.payer}`);
-      console.log(`   Amount: ${requirements.maxAmountRequired} USDC units`);
+      console.log(`   Amount: ${requirements.maxAmountRequired || requirements.amount} USDC units`);
 
       let signature: string;
       const facilitatorAddress = this.keypair?.publicKey.toBase58();

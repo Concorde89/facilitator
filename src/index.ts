@@ -1,6 +1,6 @@
 /**
  * AutoIncentive Facilitator
- * Self-hosted x402 payment verification and settlement for Base and Solana
+ * Self-hosted x402 payment verification and settlement for Base, SKALE, and Solana
  */
 
 import 'dotenv/config';
@@ -48,6 +48,10 @@ const config = {
   basePrivateKey: process.env.BASE_PRIVATE_KEY,
   baseChainId: parseInt(process.env.BASE_CHAIN_ID || '8453'),
 
+  // SKALE Europa
+  skaleRpcUrl: process.env.SKALE_RPC || 'https://mainnet.skalenodes.com/v1/elated-tan-skat',
+  skalePrivateKey: process.env.SKALE_FACILITATOR_PK,
+
   // Solana
   solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
   solanaPrivateKey: process.env.SOLANA_PRIVATE_KEY,
@@ -63,18 +67,38 @@ const baseFacilitator = new BaseFacilitator({
   chainId: config.baseChainId,
 });
 
+const skaleFacilitator = new BaseFacilitator({
+  rpcUrl: config.skaleRpcUrl,
+  privateKey: config.skalePrivateKey,
+  chainId: 324705682,
+});
+
 const solanaFacilitator = new SolanaFacilitator({
   rpcUrl: config.solanaRpcUrl,
   privateKey: config.solanaPrivateKey,
 });
 
-// Helper to determine if payload is EVM or Solana
+// Helper to determine network type
+function isSkaleNetwork(network: string): boolean {
+  return network === 'skale' || network === 'skale-europa' || network === 'eip155:324705682';
+}
+
+function isBaseNetwork(network: string): boolean {
+  return network === 'base' || network === 'base-sepolia' || network === 'eip155:8453' || network === 'eip155:84532';
+}
+
 function isEvmNetwork(network: string): boolean {
-  return network.includes('base') || network.startsWith('eip155:');
+  return isBaseNetwork(network) || isSkaleNetwork(network);
 }
 
 function isSolanaNetwork(network: string): boolean {
   return network.includes('solana');
+}
+
+// Get the right EVM facilitator for the network
+function getEvmFacilitator(network: string): BaseFacilitator {
+  if (isSkaleNetwork(network)) return skaleFacilitator;
+  return baseFacilitator;
 }
 
 // Create Express app
@@ -121,7 +145,7 @@ app.get('/discovery/stats', (_req, res) => {
 // OASF Agent Record - describes this facilitator as an agent service
 const oasfRecord: OASFAgentRecord = {
   name: 'AutoIncentive Facilitator',
-  description: 'x402 payment verification and settlement facilitator supporting Base and Solana networks. Enables AI agents and services to monetize API endpoints using the HTTP 402 Payment Required protocol.',
+  description: 'x402 payment verification and settlement facilitator supporting Base, SKALE, and Solana networks. Enables AI agents and services to monetize API endpoints using the HTTP 402 Payment Required protocol.',
   version: '1.0.0',
   schema_version: '0.8.0',
   authors: ['Autoincentive <contact@autoincentive.online>'],
@@ -141,7 +165,7 @@ const oasfRecord: OASFAgentRecord = {
   modules: [
     {
       type: 'x402_facilitator',
-      networks: ['base', 'base-sepolia', 'solana', 'solana-devnet'],
+      networks: ['base', 'base-sepolia', 'skale-europa', 'solana', 'solana-devnet'],
       supported_versions: [1, 2],
       endpoints: {
         health: '/health',
@@ -216,7 +240,13 @@ app.post('/discovery/register', (req, res) => {
 // GET /supported - List supported networks
 app.get('/supported', (req, res) => {
   const baseAddress = baseFacilitator.getSignerAddress();
+  const skaleAddress = skaleFacilitator.getSignerAddress();
   const solanaAddress = solanaFacilitator.getSignerAddress();
+
+  // Collect unique EVM signer addresses
+  const evmSigners = new Set<string>();
+  if (baseAddress) evmSigners.add(baseAddress);
+  if (skaleAddress) evmSigners.add(skaleAddress);
 
   const response: SupportedResponse = {
     kinds: [
@@ -226,6 +256,10 @@ app.get('/supported', (req, res) => {
       // Base networks (v2 CAIP-2 format)
       { x402Version: 2, scheme: 'exact', network: 'eip155:8453' },
       { x402Version: 2, scheme: 'exact', network: 'eip155:84532' },
+      // SKALE Europa (v1 format)
+      { x402Version: 1, scheme: 'exact', network: 'skale-europa' },
+      // SKALE Europa (v2 CAIP-2 format)
+      { x402Version: 2, scheme: 'exact', network: 'eip155:324705682' },
       // Solana networks (v1 format)
       { x402Version: 1, scheme: 'exact', network: 'solana' },
       { x402Version: 1, scheme: 'exact', network: 'solana-devnet' },
@@ -234,7 +268,7 @@ app.get('/supported', (req, res) => {
       { x402Version: 2, scheme: 'exact', network: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1' },
     ],
     signers: {
-      'eip155:*': baseAddress ? [baseAddress] : [],
+      'eip155:*': [...evmSigners],
       'solana:*': solanaAddress ? [solanaAddress] : [],
     },
   };
@@ -274,7 +308,8 @@ app.post('/verify', async (req, res) => {
     let response: VerifyResponse;
 
     if (isEvmNetwork(network)) {
-      response = await baseFacilitator.verify(
+      const evmFacilitator = getEvmFacilitator(network);
+      response = await evmFacilitator.verify(
         body.paymentPayload as EvmPaymentPayload,
         body.paymentRequirements
       );
@@ -341,7 +376,10 @@ app.post('/settle', async (req, res) => {
     let response: SettleResponse;
 
     if (isEvmNetwork(network)) {
-      if (!config.basePrivateKey) {
+      const evmFacilitator = getEvmFacilitator(network);
+      const hasKey = isSkaleNetwork(network) ? !!config.skalePrivateKey : !!config.basePrivateKey;
+
+      if (!hasKey) {
         res.status(503).json({
           success: false,
           errorReason: 'settlement_failed',
@@ -350,7 +388,7 @@ app.post('/settle', async (req, res) => {
         return;
       }
 
-      response = await baseFacilitator.settle(
+      response = await evmFacilitator.settle(
         body.paymentPayload as EvmPaymentPayload,
         body.paymentRequirements
       );
@@ -400,12 +438,19 @@ app.listen(config.port, () => {
   console.log('║  Networks:                                                     ║');
 
   const baseAddress = baseFacilitator.getSignerAddress();
+  const skaleAddress = skaleFacilitator.getSignerAddress();
   const solanaAddress = solanaFacilitator.getSignerAddress();
 
   if (baseAddress) {
     console.log(`║  - Base:    ${baseAddress.slice(0, 10)}...${baseAddress.slice(-8)}  ✅ Ready    ║`);
   } else {
     console.log('║  - Base:    Not configured (verify only)              ║');
+  }
+
+  if (skaleAddress) {
+    console.log(`║  - SKALE:   ${skaleAddress.slice(0, 10)}...${skaleAddress.slice(-8)}  ✅ Ready    ║`);
+  } else {
+    console.log('║  - SKALE:   Not configured (verify only)              ║');
   }
 
   if (solanaAddress) {

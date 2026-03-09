@@ -8,8 +8,11 @@ export type Network =
   | 'base-sepolia'
   | 'solana'
   | 'solana-devnet'
-  | 'eip155:8453'    // Base mainnet CAIP-2
-  | 'eip155:84532'   // Base Sepolia CAIP-2
+  | 'skale'
+  | 'skale-europa'
+  | 'eip155:8453'        // Base mainnet CAIP-2
+  | 'eip155:84532'       // Base Sepolia CAIP-2
+  | 'eip155:324705682'   // SKALE Europa CAIP-2
   | 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'  // Solana mainnet CAIP-2
   | 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'; // Solana devnet CAIP-2
 
@@ -50,7 +53,8 @@ export type PaymentPayload = EvmPaymentPayload | SolanaPaymentPayload;
 export interface PaymentRequirements {
   scheme: 'exact';
   network: string;
-  maxAmountRequired: string;
+  maxAmountRequired?: string;
+  amount?: string;
   resource: string;
   description: string;
   mimeType: string;

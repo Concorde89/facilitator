@@ -36,7 +36,7 @@ export function extractDiscoveryInfo(
       {
         scheme: paymentRequirements.scheme,
         network: paymentRequirements.network,
-        amount: paymentRequirements.maxAmountRequired,
+        amount: paymentRequirements.maxAmountRequired || paymentRequirements.amount || '',
         asset: paymentRequirements.asset,
         payTo: paymentRequirements.payTo,
       },
