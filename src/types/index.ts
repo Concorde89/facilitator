@@ -9,10 +9,10 @@ export type Network =
   | 'solana'
   | 'solana-devnet'
   | 'skale'
-  | 'skale-europa'
+  | 'skale-base'
   | 'eip155:8453'        // Base mainnet CAIP-2
   | 'eip155:84532'       // Base Sepolia CAIP-2
-  | 'eip155:324705682'   // SKALE Europa CAIP-2
+  | 'eip155:1187947933'  // SKALE Base mainnet CAIP-2
   | 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'  // Solana mainnet CAIP-2
   | 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'; // Solana devnet CAIP-2
 

@@ -16,7 +16,7 @@ This guide covers integrating x402 payments into Android applications using the 
 
 ## Overview
 
-The x402 protocol enables HTTP 402 "Payment Required" responses for monetizing APIs. The AutoIncentive Facilitator handles payment verification and settlement on Base (EVM), SKALE Europa, and Solana networks.
+The x402 protocol enables HTTP 402 "Payment Required" responses for monetizing APIs. The AutoIncentive Facilitator handles payment verification and settlement on Base (EVM), SKALE Base, and Solana networks.
 
 **What the SDK provides:**
 - Payment verification before fulfilling requests

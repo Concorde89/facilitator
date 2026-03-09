@@ -48,8 +48,8 @@ const config = {
   basePrivateKey: process.env.BASE_PRIVATE_KEY,
   baseChainId: parseInt(process.env.BASE_CHAIN_ID || '8453'),
 
-  // SKALE Europa
-  skaleRpcUrl: process.env.SKALE_RPC || 'https://base-sepolia-testnet.skalenodes.com/v1/jubilant-horrible-ancha',
+  // SKALE Base mainnet
+  skaleRpcUrl: process.env.SKALE_RPC || 'https://skale-base.skalenodes.com/v1/base',
   skalePrivateKey: process.env.SKALE_FACILITATOR_PK,
 
   // Solana
@@ -70,7 +70,7 @@ const baseFacilitator = new BaseFacilitator({
 const skaleFacilitator = new BaseFacilitator({
   rpcUrl: config.skaleRpcUrl,
   privateKey: config.skalePrivateKey,
-  chainId: 324705682,
+  chainId: 1187947933,
 });
 
 const solanaFacilitator = new SolanaFacilitator({
@@ -80,7 +80,7 @@ const solanaFacilitator = new SolanaFacilitator({
 
 // Helper to determine network type
 function isSkaleNetwork(network: string): boolean {
-  return network === 'skale' || network === 'skale-europa' || network === 'eip155:324705682';
+  return network === 'skale' || network === 'skale-base' || network === 'eip155:1187947933';
 }
 
 function isBaseNetwork(network: string): boolean {
@@ -165,7 +165,7 @@ const oasfRecord: OASFAgentRecord = {
   modules: [
     {
       type: 'x402_facilitator',
-      networks: ['base', 'base-sepolia', 'skale-europa', 'solana', 'solana-devnet'],
+      networks: ['base', 'base-sepolia', 'skale-base', 'solana', 'solana-devnet'],
       supported_versions: [1, 2],
       endpoints: {
         health: '/health',
@@ -256,10 +256,10 @@ app.get('/supported', (req, res) => {
       // Base networks (v2 CAIP-2 format)
       { x402Version: 2, scheme: 'exact', network: 'eip155:8453' },
       { x402Version: 2, scheme: 'exact', network: 'eip155:84532' },
-      // SKALE Europa (v1 format)
-      { x402Version: 1, scheme: 'exact', network: 'skale-europa' },
-      // SKALE Europa (v2 CAIP-2 format)
-      { x402Version: 2, scheme: 'exact', network: 'eip155:324705682' },
+      // SKALE Base mainnet (v1 format)
+      { x402Version: 1, scheme: 'exact', network: 'skale-base' },
+      // SKALE Base mainnet (v2 CAIP-2 format)
+      { x402Version: 2, scheme: 'exact', network: 'eip155:1187947933' },
       // Solana networks (v1 format)
       { x402Version: 1, scheme: 'exact', network: 'solana' },
       { x402Version: 1, scheme: 'exact', network: 'solana-devnet' },
