@@ -118,7 +118,7 @@ const USDC_ABI = [
 function getChainId(network: string): number {
   if (network === 'base' || network === 'eip155:8453') return 8453;
   if (network === 'base-sepolia' || network === 'eip155:84532') return 84532;
-  if (network === 'skale' || network === 'skale-base' || network === 'eip155:1187947933') return 1187947933;
+  if (network === 'skale' || network === 'skale-base' || network === 'skale-base-sepolia' || network === 'eip155:1187947933') return 1187947933;
   throw new Error(`Unsupported network: ${network}`);
 }
 
@@ -282,6 +282,7 @@ export class BaseFacilitator {
     if (!this.privateKey) {
       return {
         success: false,
+        transaction: '',
         errorReason: 'settlement_failed',
         network: paymentPayload.network,
       };
@@ -293,6 +294,7 @@ export class BaseFacilitator {
       if (!verification.isValid) {
         return {
           success: false,
+          transaction: '',
           errorReason: verification.invalidReason,
           payer: verification.payer,
           network: paymentPayload.network,
@@ -365,6 +367,7 @@ export class BaseFacilitator {
       console.error('Base settlement error:', error);
       return {
         success: false,
+        transaction: '',
         errorReason: 'settlement_failed',
         network: paymentPayload.network,
       };
@@ -384,6 +387,6 @@ export class BaseFacilitator {
    * Get supported networks
    */
   getSupportedNetworks(): string[] {
-    return ['base', 'base-sepolia', 'eip155:8453', 'eip155:84532'];
+    return ['base', 'base-sepolia', 'skale', 'skale-base', 'skale-base-sepolia', 'eip155:8453', 'eip155:84532', 'eip155:1187947933'];
   }
 }

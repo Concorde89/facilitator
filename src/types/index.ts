@@ -10,6 +10,7 @@ export type Network =
   | 'solana-devnet'
   | 'skale'
   | 'skale-base'
+  | 'skale-base-sepolia'
   | 'eip155:8453'        // Base mainnet CAIP-2
   | 'eip155:84532'       // Base Sepolia CAIP-2
   | 'eip155:1187947933'  // SKALE Base mainnet CAIP-2
@@ -75,7 +76,9 @@ export interface VerifyRequest {
 export interface VerifyResponse {
   isValid: boolean;
   invalidReason?: string;
+  invalidMessage?: string;
   payer?: string;
+  extensions?: Record<string, unknown>;
 }
 
 // Settle Request
@@ -88,10 +91,12 @@ export interface SettleRequest {
 // Settle Response
 export interface SettleResponse {
   success: boolean;
-  transaction?: string;
-  network?: string;
+  transaction: string;
+  network: string;
   errorReason?: string;
+  errorMessage?: string;
   payer?: string;
+  extensions?: Record<string, unknown>;
 }
 
 // Supported Response
@@ -104,6 +109,7 @@ export interface SupportedKind {
 
 export interface SupportedResponse {
   kinds: SupportedKind[];
+  extensions: string[];
   signers: Record<string, string[]>;
 }
 

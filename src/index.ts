@@ -80,7 +80,7 @@ const solanaFacilitator = new SolanaFacilitator({
 
 // Helper to determine network type
 function isSkaleNetwork(network: string): boolean {
-  return network === 'skale' || network === 'skale-base' || network === 'eip155:1187947933';
+  return network === 'skale' || network === 'skale-base' || network === 'skale-base-sepolia' || network === 'eip155:1187947933';
 }
 
 function isBaseNetwork(network: string): boolean {
@@ -249,6 +249,7 @@ app.get('/supported', (req, res) => {
   if (skaleAddress) evmSigners.add(skaleAddress);
 
   const response: SupportedResponse = {
+    extensions: [],
     kinds: [
       // Base networks (v1 format)
       { x402Version: 1, scheme: 'exact', network: 'base' },
@@ -258,6 +259,8 @@ app.get('/supported', (req, res) => {
       { x402Version: 2, scheme: 'exact', network: 'eip155:84532' },
       // SKALE Base mainnet (v1 format)
       { x402Version: 1, scheme: 'exact', network: 'skale-base' },
+      // SKALE Base (x402 standard identifier)
+      { x402Version: 1, scheme: 'exact', network: 'skale-base-sepolia' },
       // SKALE Base mainnet (v2 CAIP-2 format)
       { x402Version: 2, scheme: 'exact', network: 'eip155:1187947933' },
       // Solana networks (v1 format)
@@ -307,6 +310,9 @@ app.post('/verify', async (req, res) => {
 
     let response: VerifyResponse;
 
+    // Ensure resolved network is set on the payload before passing to facilitator
+    body.paymentPayload.network = network;
+
     if (isEvmNetwork(network)) {
       const evmFacilitator = getEvmFacilitator(network);
       response = await evmFacilitator.verify(
@@ -352,6 +358,8 @@ app.post('/settle', async (req, res) => {
     if (!body.paymentPayload || !body.paymentRequirements) {
       res.status(400).json({
         success: false,
+        transaction: '',
+        network: '',
         errorReason: 'invalid_payload',
       } as SettleResponse);
       return;
@@ -368,12 +376,17 @@ app.post('/settle', async (req, res) => {
       console.error('paymentRequirements:', JSON.stringify(body.paymentRequirements, null, 2));
       res.status(400).json({
         success: false,
+        transaction: '',
+        network: '',
         errorReason: 'invalid_payload',
       } as SettleResponse);
       return;
     }
 
     let response: SettleResponse;
+
+    // Ensure resolved network is set on the payload before passing to facilitator
+    body.paymentPayload.network = network;
 
     if (isEvmNetwork(network)) {
       const evmFacilitator = getEvmFacilitator(network);
@@ -382,6 +395,7 @@ app.post('/settle', async (req, res) => {
       if (!hasKey) {
         res.status(503).json({
           success: false,
+          transaction: '',
           errorReason: 'settlement_failed',
           network,
         } as SettleResponse);
@@ -400,6 +414,7 @@ app.post('/settle', async (req, res) => {
     } else {
       response = {
         success: false,
+        transaction: '',
         errorReason: 'unsupported_network',
         network,
       };
@@ -411,6 +426,8 @@ app.post('/settle', async (req, res) => {
     console.error('Settle error:', error);
     res.status(500).json({
       success: false,
+      transaction: '',
+      network: '',
       errorReason: 'unexpected_error',
     } as SettleResponse);
   }

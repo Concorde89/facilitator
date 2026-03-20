@@ -208,6 +208,7 @@ export class SolanaFacilitator {
       if (!verification.isValid) {
         return {
           success: false,
+          transaction: '',
           errorReason: verification.invalidReason,
           payer: verification.payer,
           network: paymentPayload.network,
@@ -287,6 +288,7 @@ export class SolanaFacilitator {
       console.error('Solana settlement error:', error);
       return {
         success: false,
+        transaction: '',
         errorReason: 'settlement_failed',
         network: paymentPayload.network,
       };

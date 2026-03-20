@@ -6,10 +6,14 @@
 export type Network =
   | 'base'
   | 'base-sepolia'
+  | 'skale'
+  | 'skale-base'
+  | 'skale-base-sepolia'
   | 'solana'
   | 'solana-devnet'
   | 'eip155:8453'
   | 'eip155:84532'
+  | 'eip155:1187947933'
   | 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
   | 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
 
@@ -64,16 +68,20 @@ export interface PaymentRequirements {
 export interface VerifyResponse {
   isValid: boolean;
   invalidReason?: string;
+  invalidMessage?: string;
   payer?: string;
+  extensions?: Record<string, unknown>;
 }
 
 // Settle Response
 export interface SettleResponse {
   success: boolean;
-  transaction?: string;
-  network?: string;
+  transaction: string;
+  network: string;
   errorReason?: string;
+  errorMessage?: string;
   payer?: string;
+  extensions?: Record<string, unknown>;
 }
 
 // Supported Kind
@@ -87,6 +95,7 @@ export interface SupportedKind {
 // Supported Response
 export interface SupportedResponse {
   kinds: SupportedKind[];
+  extensions: string[];
   signers: Record<string, string[]>;
 }
 
