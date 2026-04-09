@@ -18,6 +18,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { BaseFacilitator } from './base/index.js';
 import { SolanaFacilitator } from './solana/index.js';
+import { UptoFacilitator } from './base/upto.js';
 import type {
   VerifyRequest,
   SettleRequest,
@@ -30,6 +31,8 @@ import type {
   PaymentRequirementsWithExtensions,
   OASFAgentRecord,
   OASFSkill,
+  UptoVerifyRequest,
+  UptoSettleRequest,
 } from './types/index.js';
 import {
   catalogFromPayment,
@@ -76,6 +79,12 @@ const skaleFacilitator = new BaseFacilitator({
 const solanaFacilitator = new SolanaFacilitator({
   rpcUrl: config.solanaRpcUrl,
   privateKey: config.solanaPrivateKey,
+});
+
+const uptoFacilitator = new UptoFacilitator({
+  rpcUrl: config.baseRpcUrl,
+  privateKey: config.basePrivateKey,
+  chainId: config.baseChainId,
 });
 
 // Helper to determine network type
@@ -173,6 +182,8 @@ const oasfRecord: OASFAgentRecord = {
         settle: '/settle',
         supported: '/supported',
         discovery: '/discovery/resources',
+        upto_verify: '/upto/verify',
+        upto_settle: '/upto/settle',
         oasf_record: '/oasf/record',
         oasf_skills: '/oasf/skills',
       },
@@ -263,6 +274,8 @@ app.get('/supported', (req, res) => {
       { x402Version: 1, scheme: 'exact', network: 'skale-base-sepolia' },
       // SKALE Base mainnet (v2 CAIP-2 format)
       { x402Version: 2, scheme: 'exact', network: 'eip155:1187947933' },
+      // Upto scheme (Base only, Permit2-based)
+      { x402Version: 2, scheme: 'upto', network: 'eip155:8453' },
       // Solana networks (v1 format)
       { x402Version: 1, scheme: 'exact', network: 'solana' },
       { x402Version: 1, scheme: 'exact', network: 'solana-devnet' },
@@ -433,6 +446,101 @@ app.post('/settle', async (req, res) => {
   }
 });
 
+// ============================================================================
+// Upto Scheme Endpoints (Permit2-based, Base only)
+// ============================================================================
+
+// POST /upto/verify - Verify an upto (Permit2) payment
+app.post('/upto/verify', async (req, res) => {
+  try {
+    const body = req.body as UptoVerifyRequest;
+
+    if (!body.paymentPayload || !body.paymentRequirements) {
+      res.status(400).json({
+        isValid: false,
+        invalidReason: 'invalid_payload',
+      } as VerifyResponse);
+      return;
+    }
+
+    if (body.paymentRequirements.scheme !== 'upto') {
+      res.status(400).json({
+        isValid: false,
+        invalidReason: 'invalid_upto_evm_scheme',
+      } as VerifyResponse);
+      return;
+    }
+
+    const response = await uptoFacilitator.verify(
+      body.paymentPayload,
+      body.paymentRequirements,
+    );
+
+    const status = response.isValid ? 200 : 400;
+    res.status(status).json(response);
+  } catch (error) {
+    console.error('Upto verify error:', error);
+    res.status(500).json({
+      isValid: false,
+      invalidReason: 'unexpected_error',
+    } as VerifyResponse);
+  }
+});
+
+// POST /upto/settle - Settle an upto (Permit2) payment
+app.post('/upto/settle', async (req, res) => {
+  try {
+    const body = req.body as UptoSettleRequest;
+
+    if (!body.paymentPayload || !body.paymentRequirements || !body.settlementAmount) {
+      res.status(400).json({
+        success: false,
+        transaction: '',
+        network: '',
+        errorReason: 'invalid_payload',
+      } as SettleResponse);
+      return;
+    }
+
+    if (body.paymentRequirements.scheme !== 'upto') {
+      res.status(400).json({
+        success: false,
+        transaction: '',
+        network: '',
+        errorReason: 'invalid_upto_evm_scheme',
+      } as SettleResponse);
+      return;
+    }
+
+    if (!config.basePrivateKey) {
+      res.status(503).json({
+        success: false,
+        transaction: '',
+        network: body.paymentPayload.accepted.network,
+        errorReason: 'settlement_failed',
+      } as SettleResponse);
+      return;
+    }
+
+    const response = await uptoFacilitator.settle(
+      body.paymentPayload,
+      body.paymentRequirements,
+      body.settlementAmount,
+    );
+
+    const status = response.success ? 200 : 400;
+    res.status(status).json(response);
+  } catch (error) {
+    console.error('Upto settle error:', error);
+    res.status(500).json({
+      success: false,
+      transaction: '',
+      network: '',
+      errorReason: 'unexpected_error',
+    } as SettleResponse);
+  }
+});
+
 // Start server
 app.listen(config.port, () => {
   console.log('');
@@ -446,6 +554,8 @@ app.listen(config.port, () => {
   console.log('║  - GET  /supported           List supported networks           ║');
   console.log('║  - POST /verify              Verify a payment signature        ║');
   console.log('║  - POST /settle              Settle a payment                  ║');
+  console.log('║  - POST /upto/verify         Verify upto payment (Permit2)   ║');
+  console.log('║  - POST /upto/settle         Settle upto payment (Permit2)   ║');
   console.log('║  - GET  /discovery/resources Bazaar discovery (list APIs)      ║');
   console.log('║  - POST /discovery/register  Manual resource registration      ║');
   console.log('║  - GET  /discovery/stats     Discovery stats                   ║');
@@ -480,4 +590,4 @@ app.listen(config.port, () => {
   console.log('');
 });
 
-export { BaseFacilitator, SolanaFacilitator };
+export { BaseFacilitator, SolanaFacilitator, UptoFacilitator };

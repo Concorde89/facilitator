@@ -38,6 +38,74 @@ export interface EvmPaymentPayload {
   };
 }
 
+// ============================================================================
+// Upto Scheme Types (Permit2-based)
+// ============================================================================
+
+// Upto Permit2 Witness (includes facilitator field)
+export interface UptoPermit2Witness {
+  to: string;
+  facilitator: string;
+  validAfter: string;
+}
+
+// Upto Permit2 Authorization
+export interface UptoPermit2Authorization {
+  from: string;
+  permitted: {
+    token: string;
+    amount: string;
+  };
+  spender: string;
+  nonce: string;
+  deadline: string;
+  witness: UptoPermit2Witness;
+}
+
+// Upto Payment Requirements (CDP v2 format)
+export interface UptoPaymentRequirements {
+  scheme: 'upto';
+  network: string;
+  asset: string;
+  amount: string;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  extra: Record<string, unknown> & {
+    facilitatorAddress?: string;
+  };
+}
+
+// Upto Payment Payload (CDP v2 format — uses `accepted` instead of top-level scheme/network)
+export interface UptoPaymentPayload {
+  x402Version: number;
+  resource?: {
+    url: string;
+    description?: string;
+    mimeType?: string;
+  };
+  accepted: UptoPaymentRequirements;
+  payload: {
+    signature: string;
+    permit2Authorization: UptoPermit2Authorization;
+  };
+  extensions?: Record<string, unknown>;
+}
+
+// Upto Verify Request (CDP v2 format)
+export interface UptoVerifyRequest {
+  x402Version: number;
+  paymentPayload: UptoPaymentPayload;
+  paymentRequirements: UptoPaymentRequirements;
+}
+
+// Upto Settle Request (CDP v2 format, adds settlementAmount)
+export interface UptoSettleRequest {
+  x402Version: number;
+  paymentPayload: UptoPaymentPayload;
+  paymentRequirements: UptoPaymentRequirements;
+  settlementAmount: string;
+}
+
 // Solana Payment Payload
 export interface SolanaPaymentPayload {
   x402Version: number;
@@ -102,7 +170,7 @@ export interface SettleResponse {
 // Supported Response
 export interface SupportedKind {
   x402Version: number;
-  scheme: 'exact';
+  scheme: 'exact' | 'upto';
   network: string;
   extra?: Record<string, unknown>;
 }
