@@ -110,6 +110,42 @@ function getEvmFacilitator(network: string): BaseFacilitator {
   return baseFacilitator;
 }
 
+// ============================================================================
+// CDP v2 Format Normalizer
+// Converts CDP v2 payloads (with `accepted` field) to our internal format
+// so existing facilitator code works unchanged with both formats.
+// ============================================================================
+
+function normalizePayload(body: any): { paymentPayload: any; paymentRequirements: any } {
+  let paymentPayload = body.paymentPayload;
+  let paymentRequirements = body.paymentRequirements;
+
+  // Detect CDP v2 format: paymentPayload has `accepted` instead of top-level scheme/network
+  if (paymentPayload?.accepted && !paymentPayload.scheme) {
+    const accepted = paymentPayload.accepted;
+
+    // Normalize paymentPayload: flatten `accepted` fields to top level
+    paymentPayload = {
+      ...paymentPayload,
+      scheme: accepted.scheme,
+      network: accepted.network,
+    };
+
+    // Normalize paymentRequirements: map CDP fields to our format
+    if (paymentRequirements) {
+      paymentRequirements = {
+        ...paymentRequirements,
+        // Map CDP `amount` to our `maxAmountRequired` if not already set
+        maxAmountRequired: paymentRequirements.maxAmountRequired || paymentRequirements.amount,
+        // Map CDP `extra.name`/`extra.version` for EIP-712 domain (used by CDP clients)
+        // Our facilitator hardcodes the domain per chain, so these are informational
+      };
+    }
+  }
+
+  return { paymentPayload, paymentRequirements };
+}
+
 // Create Express app
 const app = express();
 
@@ -292,12 +328,12 @@ app.get('/supported', (req, res) => {
   res.json(response);
 });
 
-// POST /verify - Verify a payment
+// POST /verify - Verify a payment (supports both our format and CDP v2 format)
 app.post('/verify', async (req, res) => {
   try {
-    const body = req.body as VerifyRequest;
+    const { paymentPayload, paymentRequirements } = normalizePayload(req.body);
 
-    if (!body.paymentPayload || !body.paymentRequirements) {
+    if (!paymentPayload || !paymentRequirements) {
       res.status(400).json({
         isValid: false,
         invalidReason: 'invalid_payload',
@@ -306,14 +342,14 @@ app.post('/verify', async (req, res) => {
     }
 
     // Support both v1 (network at root) and v2 (network in accepted)
-    const network = body.paymentPayload.network ||
-                    (body.paymentPayload as any).accepted?.network ||
-                    body.paymentRequirements?.network;
+    const network = paymentPayload.network ||
+                    paymentPayload.accepted?.network ||
+                    paymentRequirements?.network;
 
     // Validate network field exists
     if (!network || typeof network !== 'string') {
-      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(body.paymentPayload, null, 2));
-      console.error('paymentRequirements:', JSON.stringify(body.paymentRequirements, null, 2));
+      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(paymentPayload, null, 2));
+      console.error('paymentRequirements:', JSON.stringify(paymentRequirements, null, 2));
       res.status(400).json({
         isValid: false,
         invalidReason: 'invalid_payload',
@@ -324,18 +360,18 @@ app.post('/verify', async (req, res) => {
     let response: VerifyResponse;
 
     // Ensure resolved network is set on the payload before passing to facilitator
-    body.paymentPayload.network = network;
+    paymentPayload.network = network;
 
     if (isEvmNetwork(network)) {
       const evmFacilitator = getEvmFacilitator(network);
       response = await evmFacilitator.verify(
-        body.paymentPayload as EvmPaymentPayload,
-        body.paymentRequirements
+        paymentPayload as EvmPaymentPayload,
+        paymentRequirements
       );
     } else if (isSolanaNetwork(network)) {
       response = await solanaFacilitator.verify(
-        body.paymentPayload as SolanaPaymentPayload,
-        body.paymentRequirements
+        paymentPayload as SolanaPaymentPayload,
+        paymentRequirements
       );
     } else {
       response = {
@@ -347,8 +383,8 @@ app.post('/verify', async (req, res) => {
     // Catalog resource for Bazaar discovery (if valid and has bazaar extension)
     if (response.isValid) {
       catalogFromPayment(
-        body.x402Version,
-        body.paymentRequirements as PaymentRequirementsWithExtensions
+        req.body.x402Version,
+        paymentRequirements as PaymentRequirementsWithExtensions
       );
     }
 
@@ -363,12 +399,12 @@ app.post('/verify', async (req, res) => {
   }
 });
 
-// POST /settle - Settle a payment
+// POST /settle - Settle a payment (supports both our format and CDP v2 format)
 app.post('/settle', async (req, res) => {
   try {
-    const body = req.body as SettleRequest;
+    const { paymentPayload, paymentRequirements } = normalizePayload(req.body);
 
-    if (!body.paymentPayload || !body.paymentRequirements) {
+    if (!paymentPayload || !paymentRequirements) {
       res.status(400).json({
         success: false,
         transaction: '',
@@ -379,14 +415,14 @@ app.post('/settle', async (req, res) => {
     }
 
     // Support both v1 (network at root) and v2 (network in accepted)
-    const network = body.paymentPayload.network ||
-                    (body.paymentPayload as any).accepted?.network ||
-                    body.paymentRequirements?.network;
+    const network = paymentPayload.network ||
+                    paymentPayload.accepted?.network ||
+                    paymentRequirements?.network;
 
     // Validate network field exists
     if (!network || typeof network !== 'string') {
-      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(body.paymentPayload, null, 2));
-      console.error('paymentRequirements:', JSON.stringify(body.paymentRequirements, null, 2));
+      console.error('Missing or invalid network in paymentPayload:', JSON.stringify(paymentPayload, null, 2));
+      console.error('paymentRequirements:', JSON.stringify(paymentRequirements, null, 2));
       res.status(400).json({
         success: false,
         transaction: '',
@@ -399,7 +435,7 @@ app.post('/settle', async (req, res) => {
     let response: SettleResponse;
 
     // Ensure resolved network is set on the payload before passing to facilitator
-    body.paymentPayload.network = network;
+    paymentPayload.network = network;
 
     if (isEvmNetwork(network)) {
       const evmFacilitator = getEvmFacilitator(network);
@@ -416,13 +452,13 @@ app.post('/settle', async (req, res) => {
       }
 
       response = await evmFacilitator.settle(
-        body.paymentPayload as EvmPaymentPayload,
-        body.paymentRequirements
+        paymentPayload as EvmPaymentPayload,
+        paymentRequirements
       );
     } else if (isSolanaNetwork(network)) {
       response = await solanaFacilitator.settle(
-        body.paymentPayload as SolanaPaymentPayload,
-        body.paymentRequirements
+        paymentPayload as SolanaPaymentPayload,
+        paymentRequirements
       );
     } else {
       response = {
