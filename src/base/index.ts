@@ -157,16 +157,16 @@ export class BaseFacilitator {
       const { signature, authorization } = paymentPayload.payload;
       const { from, to, value, validAfter, validBefore, nonce } = authorization;
 
-      // 1. Validate timing
+      // 1. Validate timing (30s buffer to ensure tx can be mined before expiry)
       const now = Math.floor(Date.now() / 1000);
       if (now < parseInt(validAfter)) {
         return {
           isValid: false,
-          invalidReason: 'payment_expired',
+          invalidReason: 'payment_not_yet_valid',
           payer: from,
         };
       }
-      if (now > parseInt(validBefore)) {
+      if (parseInt(validBefore) < now + 30) {
         return {
           isValid: false,
           invalidReason: 'payment_expired',
