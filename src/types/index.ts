@@ -27,7 +27,7 @@ export interface EvmAuthorization {
   nonce: string;
 }
 
-// EVM Payment Payload
+// EVM Payment Payload (EIP-3009)
 export interface EvmPaymentPayload {
   x402Version: number;
   scheme: 'exact';
@@ -35,6 +35,36 @@ export interface EvmPaymentPayload {
   payload: {
     signature: string;
     authorization: EvmAuthorization;
+  };
+}
+
+// Exact Permit2 Witness (no facilitator field, unlike upto)
+export interface ExactPermit2Witness {
+  to: string;
+  validAfter: string;
+}
+
+// Exact Permit2 Authorization
+export interface ExactPermit2Authorization {
+  from: string;
+  permitted: {
+    token: string;
+    amount: string;
+  };
+  spender: string;
+  nonce: string;
+  deadline: string;
+  witness: ExactPermit2Witness;
+}
+
+// EVM Payment Payload (Permit2 exact)
+export interface EvmPermit2PaymentPayload {
+  x402Version: number;
+  scheme: 'exact';
+  network: string;
+  payload: {
+    signature: string;
+    permit2Authorization: ExactPermit2Authorization;
   };
 }
 

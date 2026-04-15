@@ -26,6 +26,7 @@ import type {
   SettleResponse,
   SupportedResponse,
   EvmPaymentPayload,
+  EvmPermit2PaymentPayload,
   SolanaPaymentPayload,
   DiscoveryQueryParams,
   PaymentRequirementsWithExtensions,
@@ -364,10 +365,18 @@ app.post('/verify', async (req, res) => {
 
     if (isEvmNetwork(network)) {
       const evmFacilitator = getEvmFacilitator(network);
-      response = await evmFacilitator.verify(
-        paymentPayload as EvmPaymentPayload,
-        paymentRequirements
-      );
+      // Detect Permit2 exact payload (has permit2Authorization instead of authorization)
+      if (paymentPayload.payload?.permit2Authorization) {
+        response = await evmFacilitator.verifyPermit2(
+          paymentPayload as unknown as EvmPermit2PaymentPayload,
+          paymentRequirements
+        );
+      } else {
+        response = await evmFacilitator.verify(
+          paymentPayload as EvmPaymentPayload,
+          paymentRequirements
+        );
+      }
     } else if (isSolanaNetwork(network)) {
       response = await solanaFacilitator.verify(
         paymentPayload as SolanaPaymentPayload,
@@ -451,10 +460,18 @@ app.post('/settle', async (req, res) => {
         return;
       }
 
-      response = await evmFacilitator.settle(
-        paymentPayload as EvmPaymentPayload,
-        paymentRequirements
-      );
+      // Detect Permit2 exact payload
+      if (paymentPayload.payload?.permit2Authorization) {
+        response = await evmFacilitator.settlePermit2(
+          paymentPayload as unknown as EvmPermit2PaymentPayload,
+          paymentRequirements
+        );
+      } else {
+        response = await evmFacilitator.settle(
+          paymentPayload as EvmPaymentPayload,
+          paymentRequirements
+        );
+      }
     } else if (isSolanaNetwork(network)) {
       response = await solanaFacilitator.settle(
         paymentPayload as SolanaPaymentPayload,
