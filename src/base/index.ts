@@ -193,6 +193,15 @@ export class BaseFacilitator {
         };
       }
 
+      // 3b. Reject self-transfers (USDC transferWithAuthorization reverts when from == to)
+      if (from.toLowerCase() === to.toLowerCase()) {
+        return {
+          isValid: false,
+          invalidReason: 'self_transfer_not_allowed',
+          payer: from,
+        };
+      }
+
       // 4. Verify EIP-712 signature
       const isValid = await verifyTypedData({
         address: from as Address,
